@@ -655,6 +655,7 @@ void wpa_supplicant_process_1_of_4(struct wpa_sm *sm,
     u8 *kde, *kde_buf = NULL;
     size_t kde_len;
 
+#ifdef CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT
     if (is_wpa2_enterprise_connection()) {
         wpa2_ent_eap_state_t state = eap_client_get_eap_state();
         if (state == WPA2_ENT_EAP_STATE_IN_PROGRESS) {
@@ -663,6 +664,8 @@ void wpa_supplicant_process_1_of_4(struct wpa_sm *sm,
             return;
         }
     }
+#endif
+
     wpa_sm_set_state(WPA_FIRST_HALF_4WAY_HANDSHAKE);
 
     wpa_printf(MSG_DEBUG, "WPA 1/4-Way Handshake");
@@ -1008,37 +1011,37 @@ int wpa_supplicant_pairwise_gtk(struct wpa_sm *sm,
 static int wpa_supplicant_install_igtk(struct wpa_sm *sm,
                       const wifi_wpa_igtk_t *igtk)
 {
-   size_t len = wpa_cipher_key_len(sm->mgmt_group_cipher);
-   u16 keyidx = WPA_GET_LE16(igtk->keyid);
+    size_t len = wpa_cipher_key_len(sm->mgmt_group_cipher);
+    u16 keyidx = WPA_GET_LE16(igtk->keyid);
 
-   /* Detect possible key reinstallation */
-   if (sm->igtk.igtk_len == len &&
-       os_memcmp(sm->igtk.igtk, igtk->igtk, sm->igtk.igtk_len) == 0) {
-       wpa_printf(MSG_DEBUG,
-           "WPA: Not reinstalling already in-use IGTK to the driver (keyidx=%d)",
-           keyidx);
-       return  0;
-   }
+    /* Detect possible key reinstallation */
+    if (sm->igtk.igtk_len == len &&
+        os_memcmp(sm->igtk.igtk, igtk->igtk, sm->igtk.igtk_len) == 0) {
+        wpa_printf(MSG_DEBUG,
+            "WPA: Not reinstalling already in-use IGTK to the driver (keyidx=%d)",
+            keyidx);
+        return  0;
+    }
 
-   wpa_printf(MSG_DEBUG,
-       "WPA: IGTK keyid %d pn %02x%02x%02x%02x%02x%02x",
-       keyidx, MAC2STR(igtk->pn));
-   wpa_hexdump_key(MSG_DEBUG, "WPA: IGTK", igtk->igtk, len);
-   if (keyidx > 4095) {
-       wpa_printf(MSG_WARNING,
-           "WPA: Invalid IGTK KeyID %d", keyidx);
-       return -1;
-   }
-   if (esp_wifi_set_igtk_internal(WIFI_IF_STA, igtk) < 0) {
-       wpa_printf(MSG_WARNING,
-           "WPA: Failed to configure IGTK to the driver");
-           return -1;
-   }
+    wpa_printf(MSG_DEBUG,
+        "WPA: IGTK keyid %d pn %02x%02x%02x%02x%02x%02x",
+        keyidx, MAC2STR(igtk->pn));
+    wpa_hexdump_key(MSG_DEBUG, "WPA: IGTK", igtk->igtk, len);
 
-   sm->igtk.igtk_len = len;
-   os_memcpy(sm->igtk.igtk, igtk->igtk, sm->igtk.igtk_len);
+    if (esp_wifi_set_igtk_internal(WIFI_IF_STA, igtk) < 0) {
+        if (keyidx > 4095) {
+            wpa_printf(MSG_WARNING,
+                "WPA: Invalid IGTK KeyID %d", keyidx);
+        }
+        wpa_printf(MSG_WARNING,
+            "WPA: Failed to configure IGTK to the driver");
+        return -1;
+    }
 
-   return 0;
+    sm->igtk.igtk_len = len;
+    os_memcpy(sm->igtk.igtk, igtk->igtk, sm->igtk.igtk_len);
+
+    return 0;
 }
 #endif /* CONFIG_IEEE80211W */
 

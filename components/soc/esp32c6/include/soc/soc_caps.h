@@ -138,9 +138,9 @@
 #define SOC_CPU_HAS_FLEXIBLE_INTC       1
 #define SOC_INT_PLIC_SUPPORTED          1       //riscv platform-level interrupt controller
 
-#define SOC_CPU_BREAKPOINTS_NUM         4
-#define SOC_CPU_WATCHPOINTS_NUM         4
-#define SOC_CPU_WATCHPOINT_SIZE         0x80000000 // bytes
+#define SOC_CPU_BREAKPOINTS_NUM             4
+#define SOC_CPU_WATCHPOINTS_NUM             4
+#define SOC_CPU_WATCHPOINT_MAX_REGION_SIZE  0x80000000 // bytes
 
 #define SOC_CPU_HAS_PMA                 1
 #define SOC_CPU_IDRAM_SPLIT_USING_PMP   1
@@ -343,7 +343,6 @@
 #define SOC_SDM_CLK_SUPPORT_PLL_F80M 1
 #define SOC_SDM_CLK_SUPPORT_XTAL     1
 
-// TODO: IDF-5334 (Copy from esp32c3, need check)
 /*-------------------------- SPI CAPS ----------------------------------------*/
 #define SOC_SPI_PERIPH_NUM          2
 #define SOC_SPI_PERIPH_CS_NUM(i)    6
@@ -472,6 +471,7 @@
 #define SOC_PM_SUPPORT_BEACON_WAKEUP    (1)
 #define SOC_PM_SUPPORT_BT_WAKEUP        (1)
 #define SOC_PM_SUPPORT_EXT1_WAKEUP      (1)
+#define SOC_PM_SUPPORT_EXT1_WAKEUP_MODE_PER_PIN   (1) /*!<Supports one bit per pin to configue the EXT1 trigger level */
 #define SOC_PM_SUPPORT_CPU_PD           (1)
 #define SOC_PM_SUPPORT_MODEM_PD         (1)
 #define SOC_PM_SUPPORT_XTAL32K_PD       (1)

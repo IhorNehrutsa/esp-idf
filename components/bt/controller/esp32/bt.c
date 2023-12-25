@@ -35,7 +35,7 @@
 #include "soc/rtc.h"
 #include "soc/soc_memory_layout.h"
 #include "soc/dport_reg.h"
-#include "esp_coexist_internal.h"
+#include "private/esp_coexist_internal.h"
 #include "esp_timer.h"
 #if !CONFIG_FREERTOS_UNICORE
 #include "esp_ipc.h"
@@ -220,6 +220,8 @@ extern void bredr_sco_datapath_set(uint8_t data_path);
 extern void btdm_controller_scan_duplicate_list_clear(void);
 /* Shutdown */
 extern void esp_bt_controller_shutdown(void);
+extern void sdk_config_set_bt_pll_track_enable(bool enable);
+extern void sdk_config_set_uart_flow_ctrl_enable(bool enable);
 
 extern char _bss_start_btdm;
 extern char _bss_end_btdm;
@@ -1195,23 +1197,12 @@ static int coex_register_wifi_channel_change_callback_wrapper(void *cb)
 static int coex_version_get_wrapper(unsigned int *major, unsigned int *minor, unsigned int *patch)
 {
 #if CONFIG_SW_COEXIST_ENABLE
-    const char *ver_str = esp_coex_version_get();
-    if (ver_str != NULL) {
-        unsigned int _major = 0, _minor = 0, _patch = 0;
-        if (sscanf(ver_str, "%u.%u.%u", &_major, &_minor, &_patch) != 3) {
-            return -1;
-        }
-        if (major != NULL) {
-            *major = _major;
-        }
-        if (minor != NULL) {
-            *minor = _minor;
-        }
-        if (patch != NULL) {
-            *patch = _patch;
-        }
-        return 0;
-    }
+    coex_version_t version;
+    ESP_ERROR_CHECK(coex_version_get_value(&version));
+    *major = (unsigned int)version.major;
+    *minor = (unsigned int)version.minor;
+    *patch = (unsigned int)version.patch;
+    return 0;
 #endif
     return -1;
 }
@@ -1526,6 +1517,12 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg)
     btdm_controller_set_sleep_mode(BTDM_MODEM_SLEEP_MODE_NONE);
 #endif
 
+#if CONFIG_BTDM_CTRL_HCI_UART_FLOW_CTRL_EN
+    sdk_config_set_uart_flow_ctrl_enable(true);
+#else
+    sdk_config_set_uart_flow_ctrl_enable(false);
+#endif
+
 #ifdef CONFIG_PM_ENABLE
     if (!s_btdm_allow_light_sleep) {
         if ((err = esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "btLS", &s_light_sleep_pm_lock)) != ESP_OK) {
@@ -1676,6 +1673,8 @@ esp_err_t esp_bt_controller_enable(esp_bt_mode_t mode)
     if (btdm_controller_get_sleep_mode() == BTDM_MODEM_SLEEP_MODE_ORIG) {
         btdm_controller_enable_sleep(true);
     }
+
+    sdk_config_set_bt_pll_track_enable(true);
 
     // inititalize bluetooth baseband
     btdm_check_and_init_bb();

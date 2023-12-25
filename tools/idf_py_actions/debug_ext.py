@@ -9,7 +9,6 @@ import subprocess
 import sys
 import threading
 import time
-from base64 import b64decode
 from textwrap import indent
 from threading import Thread
 from typing import Any, Dict, List, Optional
@@ -146,9 +145,20 @@ def action_extensions(base_actions: Dict, project_path: str) -> Dict:
         coredump_to_flash = coredump_to_flash_config.rstrip().endswith('y') if coredump_to_flash_config else False
 
         prog = os.path.join(project_desc['build_dir'], project_desc['app_elf'])
-        args.port = args.port or get_default_serial_port()
 
-        espcoredump_kwargs = dict()
+        espcoredump_kwargs: Dict[str, Any] = dict()
+
+        if core:
+            espcoredump_kwargs['core'] = core
+            espcoredump_kwargs['core_format'] = 'auto'
+        elif coredump_to_flash:
+            #  If the core dump is read from flash, we don't need to specify the --core-format argument at all.
+            #  The format will be determined automatically
+            args.port = args.port or get_default_serial_port()
+        else:
+            print('Path to core dump file is not provided. '
+                  "Core dump can't be read from flash since this option is not enabled in menuconfig")
+            sys.exit(1)
 
         espcoredump_kwargs['port'] = args.port
         espcoredump_kwargs['baud'] = args.baud
@@ -160,58 +170,25 @@ def action_extensions(base_actions: Dict, project_path: str) -> Dict:
         if extra_gdbinit_file:
             espcoredump_kwargs['extra_gdbinit_file'] = extra_gdbinit_file
 
-        core_format = None
-
-        if core:
-            espcoredump_kwargs['core'] = core
-            espcoredump_kwargs['chip'] = get_sdkconfig_value(project_desc['config_file'], 'CONFIG_IDF_TARGET')
-            core_format = get_core_file_format(core)
-        elif coredump_to_flash:
-            #  If the core dump is read from flash, we don't need to specify the --core-format argument at all.
-            #  The format will be determined automatically
-            pass
-        else:
-            print('Path to core dump file is not provided. '
-                  "Core dump can't be read from flash since this option is not enabled in menuconfig")
-            sys.exit(1)
-
-        if core_format:
-            espcoredump_kwargs['core_format'] = core_format
+        espcoredump_kwargs['parttable_off'] = get_sdkconfig_value(project_desc['config_file'], 'CONFIG_PARTITION_TABLE_OFFSET')
 
         if save_core:
             espcoredump_kwargs['save_core'] = save_core
 
         espcoredump_kwargs['prog'] = prog
 
-        return CoreDump(**espcoredump_kwargs)
-
-    def get_core_file_format(core_file: str) -> str:
-        bin_v1 = 1
-        bin_v2 = 2
-        elf_crc32 = 256
-        elf_sha256 = 257
-
-        with open(core_file, 'rb') as f:
-            coredump_bytes = f.read(16)
-
-            if coredump_bytes.startswith(b'\x7fELF'):
-                return 'elf'
-
-            core_version = int.from_bytes(coredump_bytes[4:7], 'little')
-            if core_version in [bin_v1, bin_v2, elf_crc32, elf_sha256]:
-                #  esp-coredump will determine automatically the core format (ELF or BIN)
-                return 'raw'
-        with open(core_file) as c:
-            coredump_str = c.read()
-            try:
-                b64decode(coredump_str)
-            except Exception:
-                print('The format of the provided core-file is not recognized. '
-                      'Please ensure that the core-format matches one of the following: ELF (“elf”), '
-                      'raw (raw) or base64-encoded (b64) binary')
-                sys.exit(1)
+        # compatibility check for esp-coredump < 1.5.2
+        try:
+            coredump = CoreDump(**espcoredump_kwargs)
+        except TypeError as e:
+            # 'parttable_off' was added in esp-coredump 1.5.2
+            # remove argument and retry without it
+            if 'parttable_off' in str(e):
+                espcoredump_kwargs.pop('parttable_off')
+                coredump = CoreDump(**espcoredump_kwargs)
             else:
-                return 'b64'
+                raise
+        return coredump
 
     def is_gdb_with_python(gdb: str) -> bool:
         # execute simple python command to check is it supported
@@ -270,7 +247,7 @@ def action_extensions(base_actions: Dict, project_path: str) -> Dict:
             r.append('set confirm on')
             r.append('end')
             r.append('')
-            return os.linesep.join(r)
+            return '\n'.join(r)
         raise FatalError(f'{ESP_ROM_INFO_FILE} file not found. Please check IDF integrity.')
 
     def generate_gdbinit_files(gdb: str, gdbinit: Optional[str], project_desc: Dict[str, Any]) -> None:
@@ -279,7 +256,7 @@ def action_extensions(base_actions: Dict, project_path: str) -> Dict:
             raise FatalError('ELF file not found. You need to build & flash the project before running debug targets')
 
         # Recreate empty 'gdbinit' directory
-        gdbinit_dir = os.path.join(project_desc['build_dir'], 'gdbinit')
+        gdbinit_dir = '/'.join([project_desc['build_dir'], 'gdbinit'])
         if os.path.isfile(gdbinit_dir):
             os.remove(gdbinit_dir)
         elif os.path.isdir(gdbinit_dir):
@@ -287,7 +264,7 @@ def action_extensions(base_actions: Dict, project_path: str) -> Dict:
         os.mkdir(gdbinit_dir)
 
         # Prepare gdbinit for Python GDB extensions import
-        py_extensions = os.path.join(gdbinit_dir, 'py_extensions')
+        py_extensions = '/'.join([gdbinit_dir, 'py_extensions'])
         with open(py_extensions, 'w') as f:
             if is_gdb_with_python(gdb):
                 f.write(GDBINIT_PYTHON_TEMPLATE.format(sys_path=sys.path))
@@ -295,7 +272,7 @@ def action_extensions(base_actions: Dict, project_path: str) -> Dict:
                 f.write(GDBINIT_PYTHON_NOT_SUPPORTED)
 
         # Prepare gdbinit for related ELFs symbols load
-        symbols = os.path.join(gdbinit_dir, 'symbols')
+        symbols = '/'.join([gdbinit_dir, 'symbols'])
         with open(symbols, 'w') as f:
             boot_elf = get_normalized_path(project_desc['bootloader_elf']) if 'bootloader_elf' in project_desc else None
             if boot_elf and os.path.exists(boot_elf):
@@ -307,7 +284,7 @@ def action_extensions(base_actions: Dict, project_path: str) -> Dict:
 
         # Generate the gdbinit for target connect if no custom gdbinit is present
         if not gdbinit:
-            gdbinit = os.path.join(gdbinit_dir, 'connect')
+            gdbinit = '/'.join([gdbinit_dir, 'connect'])
             with open(gdbinit, 'w') as f:
                 f.write(GDBINIT_CONNECT)
 
@@ -544,7 +521,7 @@ def action_extensions(base_actions: Dict, project_path: str) -> Dict:
     gdb_timeout_sec_opt = {
         'names': ['--gdb-timeout-sec'],
         'type': INT,
-        'default': 1,
+        'default': 3,
         'help': 'Overwrite the default internal delay for gdb responses',
     }
     fail_if_openocd_failed = {

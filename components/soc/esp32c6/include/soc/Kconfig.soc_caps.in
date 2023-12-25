@@ -339,7 +339,7 @@ config SOC_CPU_WATCHPOINTS_NUM
     int
     default 4
 
-config SOC_CPU_WATCHPOINT_SIZE
+config SOC_CPU_WATCHPOINT_MAX_REGION_SIZE
     hex
     default 0x80000000
 
@@ -1120,6 +1120,10 @@ config SOC_PM_SUPPORT_BT_WAKEUP
     default y
 
 config SOC_PM_SUPPORT_EXT1_WAKEUP
+    bool
+    default y
+
+config SOC_PM_SUPPORT_EXT1_WAKEUP_MODE_PER_PIN
     bool
     default y
 
