@@ -558,6 +558,36 @@ esp_err_t gpio_deep_sleep_wakeup_disable(gpio_num_t gpio_num);
  */
 esp_err_t gpio_dump_io_configuration(FILE *out_stream, uint64_t io_bit_mask);
 
+/**
+ * @brief Get the configuration for an IO
+ *
+ * @param gpio_num GPIO number
+ * @param pu Pull-up enabled or not
+ * @param pd Pull-down enabled or not
+ * @param ie Input enabled or not
+ * @param oe Output enabled or not
+ * @param od Open-drain enabled or not
+ * @param drv Drive strength value
+ * @param fun_sel IOMUX function selection value
+ * @param sig_out Outputting peripheral signal index
+ * @param slp_sel Pin sleep mode enabled or not
+ */
+void gpio_get_io_config(uint32_t gpio_num,
+                        bool *pu, bool *pd, bool *ie, bool *oe, bool *od, uint32_t *drv,
+                        uint32_t *fun_sel, uint32_t *sig_out, bool *slp_sel);
+
+bool gpio_pullup_is_enabled(uint32_t gpio_num);
+bool gpio_pulldown_is_enabled(uint32_t gpio_num);
+bool gpio_sleep_sel_is_enabled(uint32_t gpio_num);
+bool gpio_sleep_pullup_is_enabled(uint32_t gpio_num);
+bool gpio_sleep_pulldown_is_enabled(uint32_t gpio_num);
+/*
+#define gpio_pullup_is_enabled(gpio_num)  gpio_hal_pullup_is_enabled(hal, gpio_num)
+#define gpio_pulldown_is_enabled(gpio_num) gpio_hal_pulldown_is_enabled(hal, gpio_num)
+#define gpio_sleep_sel_is_enabled(gpio_num) gpio_hal_sleep_sel_is_enabled(hal, gpio_num)
+#define gpio_sleep_pullup_is_enabled(gpio_num)  gpio_hal_sleep_pullup_is_enabled(hal, gpio_num)
+#define gpio_sleep_pulldown_is_enabled(gpio_num) gpio_hal_sleep_pulldown_is_enabled(hal, gpio_num)
+*/
 #ifdef __cplusplus
 }
 #endif

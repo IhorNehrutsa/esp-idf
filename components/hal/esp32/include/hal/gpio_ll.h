@@ -63,6 +63,8 @@ static inline void gpio_ll_get_io_config(gpio_dev_t *hw, uint32_t gpio_num,
     uint32_t iomux_reg_val = REG_READ(GPIO_PIN_MUX_REG[gpio_num]);
     *pu = (iomux_reg_val & FUN_PU_M) >> FUN_PU_S;
     *pd = (iomux_reg_val & FUN_PD_M) >> FUN_PD_S;
+    //*pu = (iomux_reg_val & FUN_PU_M) ? true : false;
+    //*pd = (iomux_reg_val & FUN_PD_M) ? true : false;
     *ie = (iomux_reg_val & FUN_IE_M) >> FUN_IE_S;
     *oe = (((gpio_num < 32) ? hw->enable : hw->enable1.val) & bit_mask) >> bit_shift;
     *od = hw->pin[gpio_num].pad_driver;
@@ -105,6 +107,7 @@ static inline void gpio_ll_pullup_dis(gpio_dev_t *hw, uint32_t gpio_num)
 static inline bool gpio_ll_pullup_is_enabled(gpio_dev_t *hw, uint32_t gpio_num)
 {
     return REG_GET_BIT(GPIO_PIN_MUX_REG[gpio_num], FUN_PU) ? true : false;
+    //return _REG_GET_BIT(DR_REG_IO_MUX_BASE + GPIO_PIN_MUX_REG_OFFSET[gpio_num], FUN_PU) ? true : false;
 }
 
 /**

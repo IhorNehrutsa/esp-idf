@@ -35,7 +35,7 @@ static const char *GPIO_TAG = "gpio";
 
 //default value for SOC_GPIO_SUPPORT_RTC_INDEPENDENT is 0
 #ifndef SOC_GPIO_SUPPORT_RTC_INDEPENDENT
-#define SOC_GPIO_SUPPORT_RTC_INDEPENDENT 0
+#define SOC_GPIO_SUPPORT_RTC_INDEPENDENT 1
 #endif
 
 typedef struct {
@@ -1024,6 +1024,7 @@ esp_err_t gpio_dump_io_configuration(FILE *out_stream, uint64_t io_bit_mask)
 
         fprintf(out_stream, "IO[%"PRIu32"]%s -\n", gpio_num, esp_gpio_is_pin_reserved(gpio_num) ? " **RESERVED**" : "");
         fprintf(out_stream, "  Pullup: %d, Pulldown: %d, DriveCap: %"PRIu32"\n", pu, pd, drv);
+        fprintf(out_stream, "  Pullup: %d, Pulldown: %d\n", gpio_pullup_is_enabled(gpio_num), gpio_pulldown_is_enabled(gpio_num));
         fprintf(out_stream, "  InputEn: %d, OutputEn: %d, OpenDrain: %d\n", ie, oe, od);
         fprintf(out_stream, "  FuncSel: %"PRIu32" (%s)\n", fun_sel, (fun_sel == PIN_FUNC_GPIO) ? "GPIO" : "IOMUX");
         if (oe && fun_sel == PIN_FUNC_GPIO) {
@@ -1046,6 +1047,24 @@ esp_err_t gpio_dump_io_configuration(FILE *out_stream, uint64_t io_bit_mask)
         fprintf(out_stream, "  SleepSelEn: %d\n", slp_sel);
         fprintf(out_stream, "\n");
     }
-    fprintf(out_stream, "=================IO DUMP End==================\n");
+    fprintf(out_stream, "=================IO DUMP End=================\n");
     return ESP_OK;
 }
+
+void gpio_get_io_config(uint32_t gpio_num,
+                        bool *pu, bool *pd, bool *ie, bool *oe, bool *od, uint32_t *drv,
+                        uint32_t *fun_sel, uint32_t *sig_out, bool *slp_sel)
+{
+/*
+    gpio_ll_get_io_config(gpio_context.gpio_hal, gpio_num,
+                          pu, pd, ie, oe, od, drv,
+                          fun_sel, sig_out, slp_sel);
+*/
+    gpio_hal_get_io_config(gpio_context.gpio_hal, gpio_num, pu, pd, ie, oe, od, drv, fun_sel, sig_out, slp_sel);
+}
+
+bool gpio_pullup_is_enabled(uint32_t gpio_num) { return gpio_hal_pullup_is_enabled(gpio_context.gpio_hal, gpio_num); }
+bool gpio_pulldown_is_enabled(uint32_t gpio_num) { return gpio_hal_pulldown_is_enabled(gpio_context.gpio_hal, gpio_num); }
+bool gpio_sleep_sel_is_enabled(uint32_t gpio_num) { return gpio_hal_sleep_sel_is_enabled(gpio_context.gpio_hal, gpio_num); }
+bool gpio_sleep_pullup_is_enabled(uint32_t gpio_num) { return gpio_hal_sleep_pullup_is_enabled(gpio_context.gpio_hal, gpio_num); }
+bool gpio_sleep_pulldown_is_enabled(uint32_t gpio_num) { return gpio_hal_sleep_pulldown_is_enabled(gpio_context.gpio_hal, gpio_num); }

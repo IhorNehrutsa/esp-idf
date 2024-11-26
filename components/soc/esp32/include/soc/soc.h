@@ -49,11 +49,22 @@
             (*(volatile uint32_t *)(_r));                                                                              \
         })
 
+/*
+#define _REG_READ(_r) (                                                                                                \
+            (*(volatile uint32_t *)(_r))                                                                               \
+            ASSERT_IF_DPORT_REG((_r), REG_READ)                                                                        \
+        )
+*/
 //get bit or get bits from register
 #define REG_GET_BIT(_r, _b)  ({                                                                                        \
             ASSERT_IF_DPORT_REG((_r), REG_GET_BIT);                                                                    \
             (*(volatile uint32_t*)(_r) & (_b));                                                                        \
         })
+/*
+#define _REG_GET_BIT(_r, _b)  (                                                                                        \
+            (*(volatile uint32_t*)(_r) & (_b))                                                                         \
+        )
+*/
 
 //set bit or set bits to register
 #define REG_SET_BIT(_r, _b)  do {                                                                                      \
