@@ -52,12 +52,13 @@ typedef struct {
 #define gpio_hal_get_io_config(hal, gpio_num, pu, pd, ie, oe, od, drv, fun_sel, sig_out, slp_sel) \
             gpio_ll_get_io_config((hal)->dev, gpio_num, pu, pd, ie, oe, od, drv, fun_sel, sig_out, slp_sel)
 
-
+/*
 #define gpio_hal_pullup_is_enabled(hal, gpio_num) gpio_ll_pullup_is_enabled((hal)->dev, gpio_num)
 #define gpio_hal_pulldown_is_enabled(hal, gpio_num) gpio_ll_pulldown_is_enabled((hal)->dev, gpio_num)
 #define gpio_hal_sleep_sel_is_enabled(hal, gpio_num) gpio_ll_sleep_sel_is_enabled((hal)->dev, gpio_num)
 #define gpio_hal_sleep_pullup_is_enabled(hal, gpio_num) gpio_ll_sleep_pullup_is_enabled((hal)->dev, gpio_num)
 #define gpio_hal_sleep_pulldown_is_enabled(hal, gpio_num) gpio_ll_sleep_pulldown_is_enabled((hal)->dev, gpio_num)
+*/
 /*
 bool gpio_pullup_is_enabled(uint32_t gpio_num) { gpio_hal_pullup_is_enabled(hal, gpio_num); }
 bool gpio_pulldown_is_enabled(uint32_t gpio_num) { gpio_hal_pulldown_is_enabled(hal, gpio_num); }
@@ -65,7 +66,6 @@ bool gpio_sleep_sel_is_enabled(uint32_t gpio_num) { gpio_hal_sleep_sel_is_enable
 bool gpio_sleep_pullup_is_enabled(uint32_t gpio_num) { gpio_hal_sleep_pullup_is_enabled(hal, gpio_num); }
 bool gpio_sleep_pulldown_is_enabled(uint32_t gpio_num) { gpio_hal_sleep_pulldown_is_enabled(hal, gpio_num); }
 */
-
 /**
   * @brief Enable pull-up on GPIO.
   *
